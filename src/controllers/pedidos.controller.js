@@ -1,253 +1,188 @@
-const fs = require('fs');
-const path = require('path');
-
+//Importamos el modelo de pedidos, el service y las utilidades compartidas
 const Pedido = require('../models/Pedido');
+const pedidosService = require('../services/pedidos.service');
+const asyncHandler = require('../utils/asyncHandler');
+const expectsJson = require('../utils/expectsJson');
 
-const pedidosPath = path.join(__dirname, '..', 'data', 'pedidos.json');
-
-function asegurarArchivoPedidos() {
-  if (!fs.existsSync(pedidosPath)) {
-    fs.writeFileSync(pedidosPath, '[]', 'utf-8');
-  }
+//Esta funcion me devuelve la lista de estados permitidos para los formularios
+function obtenerEstados() {
+  return Pedido.ESTADOS_VALIDOS;
 }
 
-function leerPedidos() {
-  asegurarArchivoPedidos();
-
-  const contenido = fs.readFileSync(pedidosPath, 'utf-8').trim();
-  const pedidos = JSON.parse(contenido || '[]');
-
-  if (!Array.isArray(pedidos)) {
-    throw new Error('El archivo pedidos.json debe contener un arreglo.');
-  }
-
-  return pedidos;
+//Armo un objeto base con los datos del formulario para volver a pintarlos si hay errores
+function construirPedidoDesdeBody(body, id) {
+  return {
+    _id: id,
+    producto: body.producto || '',
+    cantidad: body.cantidad || '',
+    cliente: body.cliente || '',
+    estado: body.estado || 'pendiente'
+  };
 }
 
-function escribirPedidos(pedidos) {
-  fs.writeFileSync(pedidosPath, JSON.stringify(pedidos, null, 2), 'utf-8');
-}
-
-function generarNuevoId(pedidos) {
-  if (!pedidos.length) {
-    return 1;
-  }
-
-  const ids = pedidos
-    .map((pedido) => Number(pedido.id))
-    .filter((id) => Number.isInteger(id) && id > 0);
-
-  return (ids.length ? Math.max(...ids) : 0) + 1;
-}
-
-function obtenerIdDesdeParams(req) {
-  return Number(req.params.id);
-}
-
-function obtenerPedidoPorId(pedidos, id) {
-  return pedidos.find((pedido) => pedido.id === id);
-}
-
-function responderErrorInterno(res, error) {
-  console.error('Error interno en pedidos.controller:', error.message);
-
-  return res.status(500).json({
-    ok: false,
-    mensaje: 'Ocurrio un error interno al procesar la solicitud.'
-  });
-}
-
-function renderizarInicio(req, res) {
-  try {
-    const pedidos = leerPedidos();
-
-    return res.status(200).render('index', {
-      titulo: 'Panificadora Industrial',
-      subtitulo: 'Seguimiento de pedidos entre planta, sucursales y franquicias',
-      pedidos
+//Centralizo la respuesta de validacion para no repetir la misma logica en crear y editar
+function responderValidacion(req, res, vista, datosVista) {
+  if (expectsJson(req)) {
+    return res.status(400).json({
+      ok: false,
+      errores: req.validationErrors
     });
-  } catch (error) {
-    console.error('Error al renderizar la vista principal:', error.message);
-
-    return res.status(500).send('No se pudo cargar la vista principal.');
   }
+
+  return res.status(400).render(vista, datosVista);
 }
 
-function obtenerTodos(req, res) {
-  try {
-    const pedidos = leerPedidos();
+//Listado principal de pedidos, compatible con vista HTML y respuesta JSON
+const listarPedidos = asyncHandler(async (req, res) => {
+  const pedidos = await pedidosService.listarPedidos();
 
+  if (expectsJson(req)) {
     return res.status(200).json({
       ok: true,
       data: pedidos
     });
-  } catch (error) {
-    return responderErrorInterno(res, error);
   }
-}
 
-function obtenerPorId(req, res) {
-  try {
-    const id = obtenerIdDesdeParams(req);
+  return res.status(200).render('pedidos', {
+    pageTitle: 'Pedidos | InnovaTech',
+    titulo: 'Panel de pedidos',
+    pedidos
+  });
+});
 
-    if (!Number.isInteger(id) || id <= 0) {
-      return res.status(400).json({
-        ok: false,
-        mensaje: 'El id debe ser un numero entero mayor a 0.'
-      });
-    }
+//Muestro el formulario vacio para registrar un nuevo pedido
+const mostrarFormularioCrear = asyncHandler(async (req, res) => {
+  res.status(200).render('crearPedido', {
+    pageTitle: 'Registrar pedido | InnovaTech',
+    titulo: 'Registrar nuevo pedido',
+    pedido: {
+      producto: '',
+      cantidad: '',
+      cliente: '',
+      estado: 'pendiente'
+    },
+    estados: obtenerEstados(),
+    errores: []
+  });
+});
 
-    const pedidos = leerPedidos();
-    const pedido = obtenerPedidoPorId(pedidos, id);
-
-    if (!pedido) {
-      return res.status(404).json({
-        ok: false,
-        mensaje: 'Pedido no encontrado.'
-      });
-    }
-
-    return res.status(200).json({
-      ok: true,
-      data: pedido
+//Creo el pedido en MongoDB si no hubo errores de validacion previos
+const crearPedido = asyncHandler(async (req, res) => {
+  if (req.validationErrors.length) {
+    return responderValidacion(req, res, 'crearPedido', {
+      pageTitle: 'Registrar pedido | InnovaTech',
+      titulo: 'Registrar nuevo pedido',
+      pedido: construirPedidoDesdeBody(req.body),
+      estados: obtenerEstados(),
+      errores: req.validationErrors
     });
-  } catch (error) {
-    return responderErrorInterno(res, error);
   }
-}
 
-function crearPedido(req, res) {
-  try {
-    const pedidos = leerPedidos();
-    const nuevoPedido = new Pedido({
-      id: generarNuevoId(pedidos),
-      producto: req.body.producto,
-      cantidad: req.body.cantidad,
-      cliente: req.body.cliente,
-      estado: req.body.estado || 'pendiente'
-    });
+  const pedidoCreado = await pedidosService.crearPedido(req.pedidoPayload);
 
-    const errores = nuevoPedido.validarDatos();
-
-    if (errores.length) {
-      return res.status(400).json({
-        ok: false,
-        errores
-      });
-    }
-
-    pedidos.push(nuevoPedido.toJSON());
-    escribirPedidos(pedidos);
-
+  if (expectsJson(req)) {
     return res.status(201).json({
       ok: true,
-      mensaje: 'Pedido creado correctamente.',
-      data: nuevoPedido.toJSON()
+      data: pedidoCreado
     });
-  } catch (error) {
-    return responderErrorInterno(res, error);
   }
-}
 
-function actualizarPedido(req, res) {
-  try {
-    const id = obtenerIdDesdeParams(req);
+  //Dejo el mensaje de exito para mostrarlo en la vista siguiente
+  req.session.flash = {
+    type: 'success',
+    message: 'El pedido se registro correctamente.'
+  };
 
-    if (!Number.isInteger(id) || id <= 0) {
-      return res.status(400).json({
-        ok: false,
-        mensaje: 'El id debe ser un numero entero mayor a 0.'
-      });
-    }
+  return res.redirect(`/pedidos/${pedidoCreado._id}`);
+});
 
-    const pedidos = leerPedidos();
-    const indicePedido = pedidos.findIndex((pedido) => pedido.id === id);
+//Muestro el detalle de un pedido puntual
+const verPedido = asyncHandler(async (req, res) => {
+  const pedido = await pedidosService.obtenerPedidoPorId(req.params.id);
 
-    if (indicePedido === -1) {
-      return res.status(404).json({
-        ok: false,
-        mensaje: 'Pedido no encontrado.'
-      });
-    }
-
-    const pedidoActualizado = new Pedido({
-      ...pedidos[indicePedido],
-      ...req.body,
-      id
-    });
-
-    if (req.body.estado !== undefined) {
-      pedidoActualizado.actualizarEstado(req.body.estado);
-    }
-
-    const errores = pedidoActualizado.validarDatos();
-
-    if (errores.length) {
-      return res.status(400).json({
-        ok: false,
-        errores
-      });
-    }
-
-    pedidos[indicePedido] = pedidoActualizado.toJSON();
-    escribirPedidos(pedidos);
-
+  if (expectsJson(req)) {
     return res.status(200).json({
       ok: true,
-      mensaje: 'Pedido actualizado correctamente.',
-      data: pedidoActualizado.toJSON()
-    });
-  } catch (error) {
-    if (error.message.startsWith('Estado invalido')) {
-      return res.status(400).json({
-        ok: false,
-        mensaje: error.message
-      });
-    }
-
-    return responderErrorInterno(res, error);
-  }
-}
-
-function eliminarPedido(req, res) {
-  try {
-    const id = obtenerIdDesdeParams(req);
-
-    if (!Number.isInteger(id) || id <= 0) {
-      return res.status(400).json({
-        ok: false,
-        mensaje: 'El id debe ser un numero entero mayor a 0.'
-      });
-    }
-
-    const pedidos = leerPedidos();
-    const pedido = obtenerPedidoPorId(pedidos, id);
-
-    if (!pedido) {
-      return res.status(404).json({
-        ok: false,
-        mensaje: 'Pedido no encontrado.'
-      });
-    }
-
-    const pedidosActualizados = pedidos.filter((item) => item.id !== id);
-    escribirPedidos(pedidosActualizados);
-
-    return res.status(200).json({
-      ok: true,
-      mensaje: 'Pedido eliminado correctamente.',
       data: pedido
     });
-  } catch (error) {
-    return responderErrorInterno(res, error);
   }
-}
 
+  return res.status(200).render('verPedido', {
+    pageTitle: 'Detalle del pedido | InnovaTech',
+    titulo: 'Detalle del pedido',
+    pedido
+  });
+});
+
+//Busco el pedido y cargo sus datos en el formulario de edicion
+const mostrarFormularioEditar = asyncHandler(async (req, res) => {
+  const pedido = await pedidosService.obtenerPedidoPorId(req.params.id);
+
+  res.status(200).render('editarPedido', {
+    pageTitle: 'Actualizar pedido | InnovaTech',
+    titulo: 'Actualizar pedido',
+    pedido,
+    estados: obtenerEstados(),
+    errores: []
+  });
+});
+
+//Actualizo el pedido si la validacion previa no encontro errores
+const actualizarPedido = asyncHandler(async (req, res) => {
+  if (req.validationErrors.length) {
+    return responderValidacion(req, res, 'editarPedido', {
+      pageTitle: 'Actualizar pedido | InnovaTech',
+      titulo: 'Actualizar pedido',
+      pedido: construirPedidoDesdeBody(req.body, req.params.id),
+      estados: obtenerEstados(),
+      errores: req.validationErrors
+    });
+  }
+
+  const pedidoActualizado = await pedidosService.actualizarPedido(req.params.id, req.pedidoPayload);
+
+  if (expectsJson(req)) {
+    return res.status(200).json({
+      ok: true,
+      data: pedidoActualizado
+    });
+  }
+
+  //Guardo un flash para confirmar que los cambios se guardaron bien
+  req.session.flash = {
+    type: 'success',
+    message: 'Los cambios del pedido se guardaron correctamente.'
+  };
+
+  return res.redirect(`/pedidos/${pedidoActualizado._id}`);
+});
+
+//Elimino el pedido seleccionado y devuelvo al listado o a JSON segun corresponda
+const eliminarPedido = asyncHandler(async (req, res) => {
+  const pedidoEliminado = await pedidosService.eliminarPedido(req.params.id);
+
+  if (expectsJson(req)) {
+    return res.status(200).json({
+      ok: true,
+      data: pedidoEliminado
+    });
+  }
+
+  req.session.flash = {
+    type: 'success',
+    message: 'El pedido se elimino correctamente.'
+  };
+
+  return res.redirect('/pedidos');
+});
+
+//Exportamos todas las acciones del modulo para conectarlas con las rutas
 module.exports = {
-  renderizarInicio,
-  obtenerTodos,
-  obtenerPorId,
+  listarPedidos,
+  mostrarFormularioCrear,
   crearPedido,
+  verPedido,
+  mostrarFormularioEditar,
   actualizarPedido,
   eliminarPedido
 };
