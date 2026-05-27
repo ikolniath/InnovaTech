@@ -1,0 +1,23 @@
+[
+  {
+    "id": 1,
+    "producto": "Pan lactal",
+    "cantidad": 120,
+    "cliente": "Sucursal Centro",
+    "estado": "pendiente"
+  },
+  {
+    "id": 2,
+    "producto": "Medialunas",
+    "cantidad": 300,
+    "cliente": "Franquicia Norte",
+    "estado": "en producción"
+  },
+  {
+    "id": 3,
+    "producto": "Pan de campo",
+    "cantidad": 50,
+    "cliente": "Sucursal Norte",
+    "estado": "pendiente"
+  }
+]

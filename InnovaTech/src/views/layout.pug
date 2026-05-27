@@ -1,0 +1,50 @@
+doctype html
+html(lang="es")
+  head
+    meta(charset="UTF-8")
+    meta(name="viewport", content="width=device-width, initial-scale=1.0")
+    title= titulo
+    style.
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 2rem;
+        background: #f5f1e8;
+        color: #2f241f;
+      }
+      main {
+        max-width: 960px;
+        margin: 0 auto;
+      }
+      .encabezado {
+        margin-bottom: 2rem;
+      }
+      .lista-pedidos {
+        display: grid;
+        gap: 1rem;
+      }
+      .pedido {
+        background: #ffffff;
+        border-left: 6px solid #b06a2b;
+        border-radius: 10px;
+        padding: 1rem 1.25rem;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+      }
+      .estado {
+        font-weight: bold;
+      }
+      .pendiente {
+        color: #8a5a00;
+      }
+      .produccion {
+        color: #006d77;
+      }
+      .despachado {
+        color: #1d4ed8;
+      }
+      .entregado {
+        color: #15803d;
+      }
+  body
+    main
+      block content
