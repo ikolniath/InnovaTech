@@ -1,0 +1,33 @@
+extends layout
+
+block content
+  //-Formulario para registrar un nuevo pedido en el sistema
+  .row.justify-content-center
+    .col-lg-8
+      .form-card.p-4.p-lg-5
+        h1.h3.mb-3= titulo
+        p.text-muted.mb-4 Completa los datos principales para registrar un nuevo pedido.
+        if errores.length
+          .alert.alert-danger
+            ul.mb-0
+              each error in errores
+                li= error
+        form(method="post", action="/pedidos")
+          .row.g-3
+            .col-md-6
+              label.form-label(for="producto") Producto
+              input#producto.form-control(type="text", name="producto", value=pedido.producto, required=true)
+            .col-md-6
+              label.form-label(for="cantidad") Cantidad
+              input#cantidad.form-control(type="number", name="cantidad", min="1", value=pedido.cantidad, required=true)
+            .col-md-6
+              label.form-label(for="cliente") Cliente
+              input#cliente.form-control(type="text", name="cliente", value=pedido.cliente, required=true)
+            .col-md-6
+              label.form-label(for="estado") Estado
+              select#estado.form-select(name="estado")
+                each estado in estados
+                  option(value=estado, selected=pedido.estado === estado)= estado
+          .d-flex.gap-2.mt-4
+            button.btn.btn-primary(type="submit") Guardar registro
+            a.btn.btn-outline-secondary(href="/pedidos") Volver al listado

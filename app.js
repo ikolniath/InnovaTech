@@ -1,188 +1,78 @@
-//Importamos el modelo de pedidos, el service y las utilidades compartidas
-const Pedido = require('../models/Pedido');
-const pedidosService = require('../services/pedidos.service');
-const asyncHandler = require('../utils/asyncHandler');
-const expectsJson = require('../utils/expectsJson');
+//Importamos path para poder trabajar con rutas y carpetas del proyecto
+const path = require('path');
 
-//Esta funcion me devuelve la lista de estados permitidos para los formularios
-function obtenerEstados() {
-  return Pedido.ESTADOS_VALIDOS;
+//Importamos dotenv para leer el archivo .env, express para levantar la app y express-session para manejar sesiones
+const dotenv = require('dotenv');
+const express = require('express');
+const session = require('express-session');
+
+//Importamos la conexion con MongoDB y las rutas principales de la aplicacion
+const connectDB = require('./src/config/db');
+const homeRoutes = require('./src/routes/home.routes');
+const authRoutes = require('./src/routes/auth.routes');
+const pedidosRoutes = require('./src/routes/pedidos.routes');
+
+//Importamos los middlewares que pasan datos de sesion a las vistas, registran peticiones y manejan errores
+const { attachSessionData } = require('./src/middlewares/auth.middleware');
+const { notFoundHandler, errorHandler } = require('./src/middlewares/error.middleware');
+const loggerMiddleware = require('./src/middlewares/logger.middleware');
+
+//Cargamos las variables de entorno para poder usar los datos del archivo .env
+dotenv.config({ quiet: true });
+
+//Creamos la aplicacion y definimos el puerto base del servidor
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+//Configuramos Pug e indicamos en que carpeta estan guardadas las vistas
+app.set('view engine', 'pug');
+app.set('views', path.join(__dirname, 'src', 'views'));
+
+//Habilitamos la lectura de formularios HTML, JSON y configuramos la sesion del usuario
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'innovatech_secret', //Clave que usa express-session para firmar la sesion
+  resave: false, //Evita volver a guardar la sesion si no hubo cambios
+  saveUninitialized: false, //Evita crear sesiones vacias
+  cookie: {
+    httpOnly: true, //Bloquea el acceso a la cookie desde JavaScript del navegador
+    sameSite: 'lax', //Permite navegar dentro del mismo sitio sin perder la sesion
+    maxAge: 1000 * 60 * 60 * 4 //Mantiene la sesion activa durante 4 horas
+  }
+}));
+
+//Registramos el logger y dejamos disponibles los datos de sesion en todas las vistas
+app.use(loggerMiddleware);
+app.use(attachSessionData);
+
+//Conectamos las rutas principales de la aplicacion
+app.use('/', homeRoutes);
+app.use('/auth', authRoutes);
+app.use('/pedidos', pedidosRoutes);
+
+//Usamos los middlewares finales para rutas no encontradas y errores generales
+app.use(notFoundHandler);
+app.use(errorHandler);
+
+//Creo una funcion asincronica para iniciar el servidor
+async function startServer() {
+  await connectDB(); //Primero me conecto a MongoDB antes de levantar la app
+
+  //Despues de conectar, escucho el puerto configurado
+  app.listen(PORT, () => {
+    console.log(`Servidor escuchando en http://localhost:${PORT}`);
+  });
 }
 
-//Armo un objeto base con los datos del formulario para volver a pintarlos si hay errores
-function construirPedidoDesdeBody(body, id) {
-  return {
-    _id: id,
-    producto: body.producto || '',
-    cantidad: body.cantidad || '',
-    cliente: body.cliente || '',
-    estado: body.estado || 'pendiente'
-  };
+//Valido si este archivo se ejecuto directamente para iniciar el servidor desde aca
+if (require.main === module) {
+  //Aqui genero el catch que muestra el mensaje de error si la aplicacion no puede iniciar
+  startServer().catch((error) => {
+    console.error('No se pudo iniciar la aplicacion:', error.message);
+    process.exit(1);
+  });
 }
 
-//Centralizo la respuesta de validacion para no repetir la misma logica en crear y editar
-function responderValidacion(req, res, vista, datosVista) {
-  if (expectsJson(req)) {
-    return res.status(400).json({
-      ok: false,
-      errores: req.validationErrors
-    });
-  }
-
-  return res.status(400).render(vista, datosVista);
-}
-
-//Listado principal de pedidos, compatible con vista HTML y respuesta JSON
-const listarPedidos = asyncHandler(async (req, res) => {
-  const pedidos = await pedidosService.listarPedidos();
-
-  if (expectsJson(req)) {
-    return res.status(200).json({
-      ok: true,
-      data: pedidos
-    });
-  }
-
-  return res.status(200).render('pedidos', {
-    pageTitle: 'Pedidos | InnovaTech',
-    titulo: 'Panel de pedidos',
-    pedidos
-  });
-});
-
-//Muestro el formulario vacio para registrar un nuevo pedido
-const mostrarFormularioCrear = asyncHandler(async (req, res) => {
-  res.status(200).render('crearPedido', {
-    pageTitle: 'Registrar pedido | InnovaTech',
-    titulo: 'Registrar nuevo pedido',
-    pedido: {
-      producto: '',
-      cantidad: '',
-      cliente: '',
-      estado: 'pendiente'
-    },
-    estados: obtenerEstados(),
-    errores: []
-  });
-});
-
-//Creo el pedido en MongoDB si no hubo errores de validacion previos
-const crearPedido = asyncHandler(async (req, res) => {
-  if (req.validationErrors.length) {
-    return responderValidacion(req, res, 'crearPedido', {
-      pageTitle: 'Registrar pedido | InnovaTech',
-      titulo: 'Registrar nuevo pedido',
-      pedido: construirPedidoDesdeBody(req.body),
-      estados: obtenerEstados(),
-      errores: req.validationErrors
-    });
-  }
-
-  const pedidoCreado = await pedidosService.crearPedido(req.pedidoPayload);
-
-  if (expectsJson(req)) {
-    return res.status(201).json({
-      ok: true,
-      data: pedidoCreado
-    });
-  }
-
-  //Dejo el mensaje de exito para mostrarlo en la vista siguiente
-  req.session.flash = {
-    type: 'success',
-    message: 'El pedido se registro correctamente.'
-  };
-
-  return res.redirect(`/pedidos/${pedidoCreado._id}`);
-});
-
-//Muestro el detalle de un pedido puntual
-const verPedido = asyncHandler(async (req, res) => {
-  const pedido = await pedidosService.obtenerPedidoPorId(req.params.id);
-
-  if (expectsJson(req)) {
-    return res.status(200).json({
-      ok: true,
-      data: pedido
-    });
-  }
-
-  return res.status(200).render('verPedido', {
-    pageTitle: 'Detalle del pedido | InnovaTech',
-    titulo: 'Detalle del pedido',
-    pedido
-  });
-});
-
-//Busco el pedido y cargo sus datos en el formulario de edicion
-const mostrarFormularioEditar = asyncHandler(async (req, res) => {
-  const pedido = await pedidosService.obtenerPedidoPorId(req.params.id);
-
-  res.status(200).render('editarPedido', {
-    pageTitle: 'Actualizar pedido | InnovaTech',
-    titulo: 'Actualizar pedido',
-    pedido,
-    estados: obtenerEstados(),
-    errores: []
-  });
-});
-
-//Actualizo el pedido si la validacion previa no encontro errores
-const actualizarPedido = asyncHandler(async (req, res) => {
-  if (req.validationErrors.length) {
-    return responderValidacion(req, res, 'editarPedido', {
-      pageTitle: 'Actualizar pedido | InnovaTech',
-      titulo: 'Actualizar pedido',
-      pedido: construirPedidoDesdeBody(req.body, req.params.id),
-      estados: obtenerEstados(),
-      errores: req.validationErrors
-    });
-  }
-
-  const pedidoActualizado = await pedidosService.actualizarPedido(req.params.id, req.pedidoPayload);
-
-  if (expectsJson(req)) {
-    return res.status(200).json({
-      ok: true,
-      data: pedidoActualizado
-    });
-  }
-
-  //Guardo un flash para confirmar que los cambios se guardaron bien
-  req.session.flash = {
-    type: 'success',
-    message: 'Los cambios del pedido se guardaron correctamente.'
-  };
-
-  return res.redirect(`/pedidos/${pedidoActualizado._id}`);
-});
-
-//Elimino el pedido seleccionado y devuelvo al listado o a JSON segun corresponda
-const eliminarPedido = asyncHandler(async (req, res) => {
-  const pedidoEliminado = await pedidosService.eliminarPedido(req.params.id);
-
-  if (expectsJson(req)) {
-    return res.status(200).json({
-      ok: true,
-      data: pedidoEliminado
-    });
-  }
-
-  req.session.flash = {
-    type: 'success',
-    message: 'El pedido se elimino correctamente.'
-  };
-
-  return res.redirect('/pedidos');
-});
-
-//Exportamos todas las acciones del modulo para conectarlas con las rutas
-module.exports = {
-  listarPedidos,
-  mostrarFormularioCrear,
-  crearPedido,
-  verPedido,
-  mostrarFormularioEditar,
-  actualizarPedido,
-  eliminarPedido
-};
+//Exportamos la app para poder reutilizarla desde otros archivos
+module.exports = app;

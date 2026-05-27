@@ -1,0 +1,47 @@
+extends layout
+
+block content
+  //-Cabecera del modulo con acceso directo al alta de pedidos
+  .d-flex.flex-wrap.justify-content-between.align-items-center.mb-4.gap-2
+    div
+      h1.h3.mb-1= titulo
+      p.text-muted.mb-0 Consulta, seguimiento y administracion de los pedidos registrados.
+    a.btn.btn-primary(href="/pedidos/nuevo") Registrar pedido
+
+  //-Si hay pedidos muestro la tabla, si no dejo un mensaje claro para el usuario
+  if pedidos.length
+    .table-shell.p-2.p-lg-3
+      .table-responsive
+        table.table.table-hover.align-middle
+          thead.table-dark
+            tr
+              th Producto
+              th Cantidad
+              th Cliente
+              th Estado
+              th Fecha de registro
+              th.text-end Acciones
+          tbody
+            each pedido in pedidos
+              tr
+                td.fw-semibold= pedido.producto
+                td= pedido.cantidad
+                td= pedido.cliente
+                td
+                  if pedido.estado === 'Pendiente'
+                    span.badge.text-bg-warning.status-label= pedido.estado
+                  else if pedido.estado === 'En produccion'
+                    span.badge.text-bg-primary.status-label= pedido.estado
+                  else if pedido.estado === 'Despachado'
+                    span.badge.text-bg-info.status-label= pedido.estado
+                  else
+                    span.badge.text-bg-success.status-label= pedido.estado
+                td= new Date(pedido.fechaCreacion).toLocaleDateString('es-AR')
+                td.text-end
+                  .btn-group.btn-group-sm
+                    a.btn.btn-outline-primary(href=`/pedidos/${pedido._id}`) Ver
+                    a.btn.btn-outline-primary(href=`/pedidos/${pedido._id}/editar`) Editar
+                    form(method="post", action=`/pedidos/${pedido._id}/eliminar`, onsubmit="return confirm('Esta accion eliminara el pedido. Deseas continuar?');")
+                      button.btn.btn-outline-primary.text-danger(type="submit") Eliminar
+  else
+    .alert.alert-info Aun no hay pedidos registrados. Cuando cargues el primero aparecera en este panel.

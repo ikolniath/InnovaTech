@@ -1,0 +1,18 @@
+extends layout
+
+block content
+  //-Vista de error general para mostrar fallos controlados de la aplicacion
+  .row.justify-content-center
+    .col-lg-8
+      .form-card.p-4.p-lg-5.border.border-danger-subtle
+        h1.h3.text-danger.mb-3= titulo
+        p.fs-5.mb-2
+          strong Codigo:
+          |  #{statusCode}
+        p.mb-3 No fue posible completar la operacion solicitada.
+        p.text-muted.mb-3= mensaje
+        if stack
+          details
+            summary Ver detalle tecnico
+            pre.mt-3.small= stack
+        a.btn.btn-outline-secondary.mt-3(href="/") Volver al inicio

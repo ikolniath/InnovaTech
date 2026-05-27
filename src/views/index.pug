@@ -1,31 +1,42 @@
 extends layout
 
 block content
-  section.encabezado
-    h1= titulo
-    p= subtitulo
-
-  if pedidos.length
-    section.lista-pedidos
-      each pedido in pedidos
-        article.pedido
-          h2 Pedido ##{pedido.id}
-          p
-            strong Producto:
-            |  #{pedido.producto}
-          p
-            strong Cantidad:
-            |  #{pedido.cantidad}
-          p
-            strong Cliente:
-            |  #{pedido.cliente}
-          if pedido.estado === 'entregado'
-            p.estado.entregado Estado: #{pedido.estado}
-          else if pedido.estado === 'despachado'
-            p.estado.despachado Estado: #{pedido.estado}
-          else if pedido.estado === 'en producci\u00f3n'
-            p.estado.produccion Estado: #{pedido.estado}
-          else
-            p.estado.pendiente Estado: #{pedido.estado}
-  else
-    p No hay pedidos registrados en este momento.
+  //-Bloque principal de bienvenida con accesos rapidos al sistema
+  .row.justify-content-center
+    .col-lg-10
+      .hero-panel.p-4.p-lg-5
+        .row.align-items-center.g-4
+          .col-lg-7
+            h1.display-5.fw-bold.mb-3= titulo
+            p.lead.text-secondary.mb-3= subtitulo
+            p.mb-4.text-muted
+              | Supervisa el flujo de pedidos, consulta el estado de cada solicitud y mantiene la operacion diaria organizada desde una interfaz clara y centralizada.
+            .d-flex.flex-wrap.gap-2
+              if usuario
+                a.btn.btn-primary(href="/pedidos") Ver panel de pedidos
+                a.btn.btn-outline-secondary(href="/pedidos/nuevo") Registrar pedido
+              else
+                a.btn.btn-primary(href="/auth/login") Acceder al sistema
+          .col-lg-5
+            .feature-card.p-4.h-100
+              span.badge.text-bg-primary.mb-3 Operacion centralizada
+              h2.h4.mb-3 Gestion mas clara para cada pedido
+              p.mb-0.text-muted
+                | Consulta, registra y actualiza pedidos de manera ordenada para mejorar la coordinacion entre planta, sucursales y franquicias.
+  //-Tarjetas informativas para resumir los beneficios principales del sistema
+  .row.mt-4.g-3
+    .col-md-4
+      .feature-card.p-4.h-100
+        h2.h5.mb-3 Trazabilidad operativa
+        p.mb-0.text-muted
+          | Visualiza el estado de cada pedido y mantiene un seguimiento mas claro desde su registro hasta la entrega.
+    .col-md-4
+      .feature-card.p-4.h-100
+        h2.h5.mb-3 Acceso seguro
+        p.mb-0.text-muted
+          | El ingreso por sesion protege el panel y permite trabajar con datos internos de forma controlada.
+    .col-md-4
+      .feature-card.p-4.h-100
+        h2.h5.mb-3 Informacion centralizada
+        p.mb-0.text-muted
+          | Todos los pedidos quedan almacenados en MongoDB para disponer de una base consistente y facil de consultar.

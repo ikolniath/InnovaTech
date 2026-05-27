@@ -1,0 +1,23 @@
+extends layout
+
+block content
+  //-Tarjeta principal para el acceso al sistema
+  .row.justify-content-center
+    .col-md-6.col-lg-5
+      .form-card.p-4.p-lg-5
+        h1.h3.mb-3= titulo
+        p.text-muted.mb-4 Ingresa con tu cuenta para acceder al panel de gestion de pedidos.
+        if errorMessage
+          .alert.alert-danger= errorMessage
+        form(method="post", action="/auth/login")
+          .mb-3
+            label.form-label(for="email") Email
+            input#email.form-control(type="email", name="email", value=formData.email || '', required=true, autocomplete="email")
+          .mb-3
+            label.form-label(for="password") Contrasena
+            input#password.form-control(type="password", name="password", required=true, autocomplete="current-password")
+          button.btn.btn-primary.w-100(type="submit") Iniciar sesion
+        .alert.alert-secondary.mt-4.mb-0
+          strong Acceso de prueba para entorno local:
+          br
+          | admin@innovatech.com / admin123
