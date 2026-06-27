@@ -36,5 +36,6 @@ block content
         h2.h6.text-uppercase.text-muted Fecha de registro
         p.fs-5.mb-0= new Date(pedido.fechaCreacion).toLocaleString('es-AR')
     hr
-    form(method="post", action=`/pedidos/${pedido._id}/eliminar`, onsubmit="return confirm('Esta accion eliminara el pedido. Deseas continuar?');")
-      button.btn.btn-outline-danger(type="submit") Eliminar pedido
+    if usuario && usuario.rol === 'admin'
+      form(method="post", action=`/pedidos/${pedido._id}/eliminar`, onsubmit="return confirm('Esta accion eliminara el pedido. Deseas continuar?');")
+        button.btn.btn-outline-danger(type="submit") Eliminar pedido

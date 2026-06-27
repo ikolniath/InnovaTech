@@ -1,5 +1,6 @@
 //Importamos el modelo de pedidos, el service y las utilidades compartidas
 const Pedido = require('../models/Pedido');
+const { emitPedidoEvent } = require('../config/socket');
 const pedidosService = require('../services/pedidos.service');
 const asyncHandler = require('../utils/asyncHandler');
 const expectsJson = require('../utils/expectsJson');
@@ -79,6 +80,7 @@ const crearPedido = asyncHandler(async (req, res) => {
   }
 
   const pedidoCreado = await pedidosService.crearPedido(req.pedidoPayload);
+  emitPedidoEvent('pedido:creado', pedidoCreado);
 
   if (expectsJson(req)) {
     return res.status(201).json({
@@ -140,6 +142,7 @@ const actualizarPedido = asyncHandler(async (req, res) => {
   }
 
   const pedidoActualizado = await pedidosService.actualizarPedido(req.params.id, req.pedidoPayload);
+  emitPedidoEvent('pedido:actualizado', pedidoActualizado);
 
   if (expectsJson(req)) {
     return res.status(200).json({
@@ -160,6 +163,7 @@ const actualizarPedido = asyncHandler(async (req, res) => {
 //Elimino el pedido seleccionado y devuelvo al listado o a JSON segun corresponda
 const eliminarPedido = asyncHandler(async (req, res) => {
   const pedidoEliminado = await pedidosService.eliminarPedido(req.params.id);
+  emitPedidoEvent('pedido:eliminado', pedidoEliminado);
 
   if (expectsJson(req)) {
     return res.status(200).json({

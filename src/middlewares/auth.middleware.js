@@ -45,9 +45,39 @@ function redirectIfAuthenticated(req, res, next) {
   return res.redirect('/pedidos');
 }
 
+//Valido el rol del usuario para proteger acciones criticas del sistema
+function requireRole(...rolesPermitidos) {
+  return function validarRol(req, res, next) {
+    const usuario = req.session.user;
+
+    if (usuario && rolesPermitidos.includes(usuario.rol)) {
+      return next();
+    }
+
+    if (expectsJson(req)) {
+      return res.status(403).json({
+        ok: false,
+        mensaje: 'No tienes permisos para realizar esta accion.'
+      });
+    }
+
+    req.session.flash = {
+      type: 'warning',
+      message: 'No tienes permisos para realizar esta accion.'
+    };
+
+    return res.redirect('/pedidos');
+  };
+}
+
+//Creo un alias simple para las acciones que solo puede ejecutar un administrador
+const requireAdmin = requireRole('admin');
+
 //Exportamos los middlewares para poder reutilizarlos en distintas rutas
 module.exports = {
   attachSessionData,
   requireAuth,
-  redirectIfAuthenticated
+  redirectIfAuthenticated,
+  requireRole,
+  requireAdmin
 };

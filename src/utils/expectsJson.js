@@ -4,6 +4,7 @@ function expectsJson(req) {
 
   return req.query.format === 'json'
     || req.originalUrl.startsWith('/api/')
+    || req.originalUrl.includes('/api')
     || req.is('application/json')
     || (accept.includes('application/json') && !accept.includes('text/html'));
 }

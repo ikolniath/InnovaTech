@@ -28,11 +28,11 @@ block content
                 td= pedido.cantidad
                 td= pedido.cliente
                 td
-                  if pedido.estado === 'Pendiente'
+                  if pedido.estado === 'pendiente'
                     span.badge.text-bg-warning.status-label= pedido.estado
-                  else if pedido.estado === 'En produccion'
+                  else if pedido.estado === 'en producci\u00f3n'
                     span.badge.text-bg-primary.status-label= pedido.estado
-                  else if pedido.estado === 'Despachado'
+                  else if pedido.estado === 'despachado'
                     span.badge.text-bg-info.status-label= pedido.estado
                   else
                     span.badge.text-bg-success.status-label= pedido.estado
@@ -41,7 +41,8 @@ block content
                   .btn-group.btn-group-sm
                     a.btn.btn-outline-primary(href=`/pedidos/${pedido._id}`) Ver
                     a.btn.btn-outline-primary(href=`/pedidos/${pedido._id}/editar`) Editar
-                    form(method="post", action=`/pedidos/${pedido._id}/eliminar`, onsubmit="return confirm('Esta accion eliminara el pedido. Deseas continuar?');")
-                      button.btn.btn-outline-primary.text-danger(type="submit") Eliminar
+                    if usuario && usuario.rol === 'admin'
+                      form(method="post", action=`/pedidos/${pedido._id}/eliminar`, onsubmit="return confirm('Esta accion eliminara el pedido. Deseas continuar?');")
+                        button.btn.btn-outline-primary.text-danger(type="submit") Eliminar
   else
     .alert.alert-info Aun no hay pedidos registrados. Cuando cargues el primero aparecera en este panel.

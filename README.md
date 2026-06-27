@@ -1,65 +1,50 @@
-# InnovaTech
+→ InnovaTech
 
-Aplicacion academica de Back End para gestionar pedidos de una panificadora industrial. El proyecto evoluciono desde una version con almacenamiento en JSON hacia una aplicacion Express modular con MongoDB, Mongoose, autenticacion por sesiones, vistas Pug y Bootstrap.
+InnovaTech es una aplicacion web para la gestion interna de pedidos de una panificadora. Permite iniciar sesion, registrar pedidos, consultar su estado, actualizarlos y eliminarlos segun el rol del usuario.
+El proyecto esta preparado como version final de Desarrollo Web Backend, integrando Express, MongoDB, Mongoose, sesiones, roles, WebSockets, pruebas con Jest, documentacion y una arquitectura MVC modular.
 
-## Objetivo academico
+→ Objetivo del sistema
 
-Demostrar el uso integrado de:
+Centralizar la administracion de pedidos entre planta, sucursales y franquicias, manteniendo una estructura clara para el backend y una interfaz simple con Pug y Bootstrap.
 
-- Node.js y Express.
-- Arquitectura MVC.
-- MongoDB con Mongoose.
-- Middlewares.
-- Rutas y controladores.
-- Manejo centralizado de errores.
-- Validaciones simples.
-- Programacion asincronica con async/await.
-- Login con sesiones.
-- Vistas server-side con Pug y Bootstrap.
-
-## Tecnologias utilizadas
+→ Tecnologias utilizadas
 
 - Node.js
 - Express
 - MongoDB
 - Mongoose
+- Pug
+- Bootstrap 5
 - express-session
 - bcrypt
 - dotenv
-- Pug
-- Bootstrap 5
+- socket.io
+- Jest
+- pnpm
 
-## Estado actual de la interfaz
+→ Arquitectura MVC y modular
 
-- El frontend mantiene Bootstrap 5 como base visual.
-- Los estilos propios se concentran en `src/views/layout.pug`.
-- Los textos visibles fueron ajustados para dar una imagen mas profesional del sistema.
+El proyecto separa responsabilidades para facilitar mantenimiento y defensa oral:
 
-## Mantenimiento del codigo
+- `models`: definicion de modelos y validaciones con Mongoose.
+- `views`: pantallas Pug con Bootstrap.
+- `controllers`: coordinan la peticion HTTP, las vistas y los servicios.
+- `routes`: organizan endpoints web y API REST.
+- `middlewares`: autenticacion, roles, validaciones, logger y errores.
+- `services`: operaciones CRUD contra MongoDB.
+- `config`: configuracion de MongoDB y WebSockets.
+- `utils`: utilidades compartidas como `AppError`, `asyncHandler` y deteccion de JSON.
+- `seed`: creacion del usuario administrador inicial.
+- `tests`: pruebas automatizadas con Jest.
+- `docs`: documentacion complementaria de pruebas.
 
-- El codigo fuente incluye comentarios breves y naturales para facilitar el estudio del proyecto.
-- Los comentarios explican bloques, decisiones simples y flujo general sin cambiar la logica funcional.
-
-## Arquitectura del proyecto
-
-La aplicacion sigue una estructura MVC modular:
-
-- `models`: schemas y modelos de Mongoose.
-- `views`: vistas Pug para login, listado, formularios y errores.
-- `controllers`: logica HTTP y coordinacion entre vistas, servicios y sesion.
-- `routes`: definicion de endpoints.
-- `middlewares`: autenticacion, logging, validacion y manejo de errores.
-- `services`: acceso a datos y reglas de negocio de pedidos.
-- `config`: conexion a base de datos.
-- `utils`: utilidades compartidas como `AppError`, `asyncHandler` y deteccion de formato de respuesta.
-- `seed`: scripts de carga inicial.
-
-## Estructura de carpetas
+→ Estructura de carpetas
 
 ```text
 src/
 |-- config/
-|   `-- db.js
+|   |-- db.js
+|   `-- socket.js
 |-- controllers/
 |   |-- auth.controller.js
 |   |-- home.controller.js
@@ -93,153 +78,275 @@ src/
     |-- login.pug
     |-- pedidos.pug
     `-- verPedido.pug
+
+tests/
+|-- appError.test.js
+|-- pedido.model.test.js
+`-- usuario.model.test.js
+
+docs/
+`-- pruebas.md
+
+pnpm-workspace.yaml
 ```
 
-## Requisitos previos
+→ Instalacion
+
+Requisitos previos:
 
 - Node.js 18 o superior.
-- MongoDB local en ejecucion.
-- npm o pnpm instalado.
+- pnpm instalado.
+- MongoDB local o una URI de MongoDB Atlas.
 
-## Instalacion
-
-```bash
-npm install
-```
-
-Si prefieres pnpm:
+Instalar dependencias:
 
 ```bash
 pnpm install
 ```
 
-## Variables de entorno
+El archivo `pnpm-workspace.yaml` deja aprobados los builds necesarios de dependencias nativas como `bcrypt`.
 
-1. Copia `.env.example` a `.env`.
-2. Ajusta los valores segun tu entorno.
+→ Variables de entorno
 
-Variables incluidas:
+Crear un archivo `.env` a partir de `.env.example`:
 
 ```env
 PORT=3000
+MONGO_URI=mongodb+srv://usuario:password@cluster.mongodb.net/innovatech?appName=Cluster0
+SESSION_SECRET=***********
+NODE_ENV=development
+```
+
+Lo datos no son reales por seguridad. No se debe subir `.env` al repositorio. El archivo real queda ignorado por `.gitignore`.
+
+→ MongoDB local
+
+Con MongoDB instalado localmente, la aplicacion puede usar:
+
+```env
 MONGO_URI=mongodb://127.0.0.1:27017/innovatech
-SESSION_SECRET=innovatech_secret
 ```
 
-## Como levantar MongoDB local
+Si MongoDB se ejecuta como servicio, solo hace falta confirmar que este activo antes de iniciar la aplicacion.
 
-Ejemplo con instalacion local de MongoDB:
+→ MongoDB Atlas
+
+Se despliega en MongoDB Atlas, por eso el `.env` tiene una URI del siguiente estilo.
+
+```env
+MONGO_URI=mongodb+srv://usuario:password@cluster.mongodb.net/innovatech
+```
+
+→ Comandos principales
 
 ```bash
-mongod --dbpath <tu_ruta_de_datos>
+pnpm run dev
 ```
-
-Si ya lo tienes configurado como servicio, solo asegurate de que este activo y accesible en `mongodb://127.0.0.1:27017/innovatech`.
-
-## Como ejecutar el proyecto
-
-Modo desarrollo:
 
 ```bash
-npm run dev
+pnpm start
 ```
-
-Modo normal:
 
 ```bash
-npm start
+pnpm run seed:admin
 ```
-
-## Como crear el usuario administrador inicial
-
-Ejecuta:
 
 ```bash
-npm run seed:admin
+pnpm test
 ```
 
-Credenciales de ejemplo para entorno local:
+```bash
+pnpm run test:watch
+```
+
+→ Usuario administrador inicial
+
+Crear el admin:
+
+```bash
+pnpm run seed:admin
+```
+
+Crear el usuario:
+
+```bash
+node src/seed/seedUsuario.js
+```
+
+Credenciales para entorno local:
+
+Administrador:
 
 - Email: `admin@innovatech.com`
 - Password: `admin123`
 
-## Rutas principales
+Usuario:
 
-Publicas:
+- Email: `usuario@innovatech.com`
+- Password: `usuario123`
 
-- `GET /`
-- `GET /auth/login`
-- `POST /auth/login`
-- `POST /auth/logout`
+El modelo `Usuario` hashea la contrasena con `bcrypt` antes de guardarla.
 
-Privadas:
+→ Rutas web principales
 
-- `GET /pedidos`
-- `GET /pedidos/nuevo`
-- `POST /pedidos`
-- `GET /pedidos/:id`
-- `GET /pedidos/:id/editar`
-- `POST /pedidos/:id/editar`
-- `POST /pedidos/:id/eliminar`
-- `PUT /pedidos/:id`
-- `DELETE /pedidos/:id`
+- `GET /`: inicio del sistema.
+- `GET /auth/login`: formulario de login.
+- `POST /auth/login`: inicio de sesion.
+- `POST /auth/logout`: cierre de sesion.
+- `GET /pedidos`: listado de pedidos.
+- `GET /pedidos/nuevo`: formulario para registrar pedido.
+- `POST /pedidos`: crear pedido.
+- `GET /pedidos/:id`: detalle de pedido.
+- `GET /pedidos/:id/editar`: formulario de edicion.
+- `POST /pedidos/:id/editar`: actualizar pedido desde formulario.
+- `POST /pedidos/:id/eliminar`: eliminar pedido desde formulario, solo admin.
 
-Compatibilidad JSON:
+→ Endpoints API REST
 
-- Si la peticion envia `Accept: application/json`, `Content-Type: application/json` o `?format=json`, los controladores de pedidos devuelven JSON.
+Los endpoints API estan protegidos por sesion igual que las rutas web:
 
-## Middlewares
+- `GET /pedidos/api`
+- `GET /pedidos/api/:id`
+- `POST /pedidos/api`
+- `PUT /pedidos/api/:id`
+- `DELETE /pedidos/api/:id`, solo admin.
 
-- `logger.middleware.js`: registra metodo, URL, codigo de estado y tiempo de respuesta.
-- `auth.middleware.js`: protege rutas privadas y expone usuario/flash a las vistas.
-- `validarPedido.middleware.js`: valida datos basicos antes del controlador.
-- `error.middleware.js`: centraliza 404, errores de Mongoose y errores generales.
+Tambien se mantiene compatibilidad JSON con `Accept: application/json`, `Content-Type: application/json` o `?format=json`.
 
-## Controladores
+→ Middlewares usados
 
-- `auth.controller.js`: renderiza login, valida credenciales y gestiona la sesion.
-- `pedidos.controller.js`: renderiza vistas, responde JSON cuando corresponde y coordina el CRUD con el service.
-- `home.controller.js`: muestra la pagina de inicio.
+- `logger.middleware.js`: registra metodo, URL, estado y tiempo de respuesta.
+- `auth.middleware.js`: expone datos de sesion, protege rutas privadas y valida roles.
+- `validarPedido.middleware.js`: valida producto, cantidad, cliente y estado antes del controlador.
+- `error.middleware.js`: maneja 404, errores de Mongoose y errores generales.
 
-## Manejo de errores
+→ Seguridad implementada
 
-La aplicacion utiliza:
+- Passwords protegidas con `bcrypt`.
+- Login con sesiones usando `express-session`.
+- Rutas de pedidos protegidas con `requireAuth`.
+- Acciones criticas de eliminacion protegidas con `requireAdmin`.
+- Variables sensibles fuera del repositorio mediante `.env`.
+- Manejo centralizado de errores para evitar respuestas inconsistentes.
+- Las respuestas de sesion solo guardan datos minimos del usuario.
+
+→ Roles
+
+El sistema maneja dos roles:
+
+- `admin`: puede gestionar pedidos y eliminar registros.
+- `usuario`: puede acceder al panel y trabajar con pedidos, pero no eliminar.
+
+→ Por que se usaron sesiones y no JWT
+
+La aplicacion renderiza vistas desde el servidor con Pug. Para este tipo de aplicacion web, las sesiones son simples, claras y suficientes. JWT se suele usar mas en APIs consumidas por frontends separados o aplicaciones moviles. Por eso se mantuvo `express-session` y no se agrego Passport.js.
+
+→ WebSockets
+
+Se agrego `socket.io` de forma simple para demostrar comunicacion en tiempo real.
+
+Cuando se crea, actualiza o elimina un pedido, el servidor emite:
+
+- `pedido:creado`
+- `pedido:actualizado`
+- `pedido:eliminado`
+- `pedidos:actualizados`
+
+La vista escucha `pedidos:actualizados` y muestra una notificacion indicando que hubo cambios. No se convirtio toda la aplicacion a tiempo real; solo se agrego una mejora puntual y explicable.
+
+→ Pruebas automatizadas
+
+Las pruebas usan Jest y se ejecutan con:
+
+```bash
+pnpm test
+```
+
+Cubren:
+
+- Validaciones del modelo `Pedido`.
+- Validaciones del modelo `Usuario`.
+- Comparacion de contrasenas con `bcrypt`.
+- Creacion de errores controlados con `AppError`.
+
+La documentacion detallada esta en `docs/pruebas.md`.
+
+→ Pruebas manuales sugeridas
+
+- Login correcto.
+- Login incorrecto.
+- Acceso a `/pedidos` sin sesion.
+- Crear pedido valido.
+- Crear pedido invalido.
+- Editar pedido.
+- Eliminar pedido con admin.
+- Intentar eliminar pedido sin rol admin.
+- Abrir ruta inexistente.
+- Enviar cantidad menor o igual a cero.
+- Probar eventos WebSocket abriendo dos ventanas y modificando pedidos.
+
+→ Manejo de errores
+
+El proyecto usa:
 
 - `AppError` para errores controlados.
-- `asyncHandler` para capturar errores asincronos.
-- Un middleware central que:
-  - responde JSON si la peticion lo requiere,
-  - renderiza `error.pug` para navegacion web,
-  - transforma errores de validacion de Mongoose,
-  - maneja ObjectId invalido y 404.
+- `asyncHandler` para evitar repetir `try/catch` en controladores.
+- `error.middleware.js` para devolver HTML o JSON segun el tipo de peticion.
 
-## Validaciones
+Se contemplan:
 
-Se aplican en dos capas:
+- Ruta inexistente.
+- ObjectId invalido.
+- Validaciones de Mongoose.
+- Registros no encontrados.
+- Errores generales.
 
-- Middleware `validarPedido.middleware.js` para validaciones simples de entrada.
-- Schema de `Pedido` en Mongoose para reforzar reglas en base de datos.
+→ Decisiones tecnicas
 
-Tambien el modelo `Usuario` valida campos requeridos y hashea passwords con bcrypt.
+- Se uso MongoDB porque permite trabajar con documentos flexibles para pedidos.
+- Se uso Mongoose para schemas, validaciones y CRUD.
+- Se separo la logica en rutas, controladores, servicios y modelos.
+- Se uso `asyncHandler` para centralizar errores asincronicos.
+- Se uso `bcrypt` para proteger contrasenas.
+- Se uso `express-session` porque el frontend se renderiza desde el servidor.
+- Se uso Bootstrap para mantener una interfaz simple sin crear un frontend separado.
+- Se uso pnpm por eficiencia en la gestion de dependencias.
+- Se agrego Socket.IO de forma acotada para cubrir WebSockets sin complejidad innecesaria.
+- Se agrego Jest para validar piezas criticas sin depender de una base de datos real.
 
-## Uso de async/await
+→ Despliegue
 
-Toda la logica de acceso a base de datos y autenticacion se implementa con `async/await`, evitando callbacks complejos y manteniendo el flujo legible.
+Utilizamos Render para despliegue.
 
-## Notas sobre sesiones
+Configuracion general:
 
-El proyecto utiliza `express-session` con MemoryStore, suficiente para este contexto academico. En un entorno real deberia migrarse a un store persistente.
+- Build command: `pnpm install`
+- Start command: `pnpm start`
+- Variables de entorno:
+  - `PORT`
+  - `MONGO_URI`
+  - `SESSION_SECRET`
+  - `NODE_ENV=production`
 
-## Archivos removidos o reemplazados
+En produccion usamos MongoDB Atlas y un `SESSION_SECRET` largo y privado.
 
-- Se elimino la dependencia funcional de `src/data/pedidos.json` porque la persistencia ahora vive en MongoDB.
-- Se reemplazo `src/middleware` por `src/middlewares` para mantener consistencia con una arquitectura modular mas clara.
-- Se estandarizo el proyecto alrededor de un solo lockfile de pnpm para evitar conflicto con `package-lock.json`.
+→ Bibliografia y recursos
 
-## Posibles mejoras futuras
+- Documentacion oficial de Express.
+- Documentacion oficial de Mongoose.
+- Documentacion oficial de MongoDB Atlas.
+- Documentacion oficial de Socket.IO.
+- Documentacion oficial de Jest.
+- Documentacion oficial de Bootstrap.
+- Material de clase de Desarrollo Web Backend.
 
-- Agregar paginacion y filtros por estado o cliente.
-- Implementar roles con permisos mas finos.
-- Incorporar pruebas automatizadas con Supertest y una base de datos temporal.
-- Mover las vistas de formularios a componentes o mixins Pug reutilizables.
-- Reemplazar MemoryStore por un store de sesiones persistente.
+→ Uso de IA
+
+Se utilizo IA como apoyo para revisar estructura, documentacion, comentarios, buenas practicas y preparacion de la entrega final. Las decisiones del proyecto se mantuvieron alineadas con los contenidos vistos en la cursada y con la arquitectura ya existente.
+
+→ Roles y responsabilidades
+
+- Johan Matamoros: estructura general, funcionalidad integral, configuracion del entorno, pnpm.
+- Jessica Oleszuk: configuracion de base de datos, MongoDB, Mongoose, modelos, documentación.
+- Juan Pablo Miranda: rutas, middlewares, validaciones, proteccion de rutas, manejo de errores, despliegue en Render.
+- Sebastian Miguel Mombelli: app.js, controladores e integracion principal de la aplicacion, revision final y explicacion global

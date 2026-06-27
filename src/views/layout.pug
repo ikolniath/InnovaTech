@@ -262,9 +262,20 @@ html(lang="es")
     main.container.page-shell.flex-grow-1
       if flash
         .alert(class=`alert-${flash.type || 'info'}`)= flash.message
+      #socketNotice.alert.alert-info.d-none(role="alert")
       block content
     //-Pie simple para mantener una identidad mas profesional y consistente
     footer.app-footer.text-white-50.py-3.mt-auto
       .container.text-center.small
         | InnovaTech | Plataforma interna para la gestion de pedidos.
     script(src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js", integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz", crossorigin="anonymous")
+    script(src="/socket.io/socket.io.js")
+    script.
+      const socketNotice = document.getElementById('socketNotice');
+      if (socketNotice && window.io) {
+        const socket = io();
+        socket.on('pedidos:actualizados', () => {
+          socketNotice.textContent = 'Se detecto un cambio en los pedidos. Actualiza la pagina para ver la informacion mas reciente.';
+          socketNotice.classList.remove('d-none');
+        });
+      }
